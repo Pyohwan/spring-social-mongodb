@@ -38,7 +38,7 @@ public class MongoConnectionConverter {
 	}
 
 	private ConnectionData fillConnectionData(MongoConnection uc) {
-		return new ConnectionData(uc.getProviderId(), uc.getProviderUserId(),
+		return new ConnectionData(uc.getProviderId(), uc.getUserId(),
 				uc.getDisplayName(), uc.getProfileUrl(), uc.getImageUrl(),
 				decrypt(uc.getAccessToken()), decrypt(uc.getSecret()),
 				decrypt(uc.getRefreshToken()), uc.getExpireTime());
@@ -48,7 +48,7 @@ public class MongoConnectionConverter {
 		ConnectionData data = cnn.createData();
 		MongoConnection userConn = new MongoConnection();
 		userConn.setProviderId(data.getProviderId());
-		userConn.setProviderUserId(data.getProviderUserId());
+		userConn.setUserId(data.getProviderUserId());
 		userConn.setDisplayName(data.getDisplayName());
 		userConn.setProfileUrl(data.getProfileUrl());
 		userConn.setImageUrl(data.getImageUrl());

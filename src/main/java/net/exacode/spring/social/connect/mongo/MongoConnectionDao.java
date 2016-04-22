@@ -1,16 +1,7 @@
 package net.exacode.spring.social.connect.mongo;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static org.springframework.data.mongodb.core.query.Query.query;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-
+import com.mongodb.WriteConcern;
 import net.exacode.spring.social.connect.SocialConnectionDao;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
@@ -24,7 +15,11 @@ import org.springframework.social.connect.ConnectionKey;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
-import com.mongodb.WriteConcern;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * A MongoDB data access object for spring social connections
@@ -54,7 +49,7 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	public int getMaxRank(String userId, String providerId) {
 		// select coalesce(max(rank) + 1, 1) as rank from UserConnection where
 		// userId = ? and providerId = ?
-		Query q = query(where("userId").is(userId).and("providerId")
+		Query q = Query.query(Criteria.where("userId").is(userId).and("providerId")
 				.is(providerId));
 
 		q.with(new Sort(Direction.DESC, "rank"));
@@ -94,9 +89,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 			mongoTemplate.setWriteConcern(WriteConcern.SAFE);
 			mongoTemplate.save(mongoCnn);
 		} catch (DuplicateKeyException e) {
-			Query q = query(where("userId").is(userId).and("providerId")
-					.is(mongoCnn.getProviderId()).and("providerUserId")
-					.is(mongoCnn.getProviderUserId()));
+			Query q = Query.query(Criteria.where("userId").is(userId).and("providerId")
+					.is(mongoCnn.getProviderId()));
 
 			Update update = Update
 					.update("expireTime", mongoCnn.getExpireTime())
@@ -118,9 +112,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public void remove(String userId, ConnectionKey connectionKey) {
 		// delete where userId = ? and providerId = ? and providerUserId = ?
-		Query q = query(where("userId").is(userId).and("providerId")
-				.is(connectionKey.getProviderId()).and("providerUserId")
-				.is(connectionKey.getProviderUserId()));
+		Query q = Query.query(Criteria.where("userId").is(userId)
+				.and("providerId").is(connectionKey.getProviderId()));
 		mongoTemplate.remove(q, MongoConnection.class);
 	}
 
@@ -133,7 +126,7 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public void remove(String userId, String providerId) {
 		// delete where userId = ? and providerId = ?
-		Query q = query(where("userId").is(userId).and("providerId")
+		Query q = Query.query(Criteria.where("userId").is(userId).and("providerId")
 				.is(providerId));
 
 		mongoTemplate.remove(q, MongoConnection.class);
@@ -148,8 +141,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public Connection<?> getPrimaryConnection(String userId, String providerId) {
 		// where userId = ? and providerId = ? and rank = 1
-		Query q = query(where("userId").is(userId).and("providerId")
-				.is(providerId).and("rank").is(1));
+		Query q = Query.query(Criteria.where("userId").is(userId)
+				.and("providerId").is(providerId).and("rank").is(1));
 
 		MongoConnection mc = mongoTemplate.findOne(q, MongoConnection.class);
 		return converter.convert(mc);
@@ -165,8 +158,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	public Connection<?> getConnection(String userId, String providerId,
 			String providerUserId) {
 		// where userId = ? and providerId = ? and providerUserId = ?
-		Query q = query(where("userId").is(userId).and("providerId")
-				.is(providerId).and("providerUserId").is(providerUserId));
+		Query q = Query.query(Criteria.where("userId").is(userId)
+				.and("providerId").is(providerId));
 
 		MongoConnection mc = mongoTemplate.findOne(q, MongoConnection.class);
 		return converter.convert(mc);
@@ -180,7 +173,7 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public List<Connection<?>> getConnections(String userId) {
 		// select where userId = ? order by providerId, rank
-		Query q = query(where("userId").is(userId));
+		Query q = Query.query(Criteria.where("userId").is(userId));
 		q.with(new Sort(Direction.ASC, "providerId"));
 		q.with(new Sort(Direction.ASC, "rank"));
 		return runQuery(q);
@@ -195,7 +188,7 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public List<Connection<?>> getConnections(String userId, String providerId) {
 		// where userId = ? and providerId = ? order by rank
-		Query q = new Query(where("userId").is(userId).and("providerId")
+		Query q = new Query(Criteria.where("userId").is(userId).and("providerId")
 				.is(providerId));
 		q.with(new Sort(Direction.ASC, "rank"));
 
@@ -223,11 +216,11 @@ public class MongoConnectionDao implements SocialConnectionDao {
 		for (Entry<String, List<String>> entry : providerUsers.entrySet()) {
 			String providerId = entry.getKey();
 
-			lc.add(where("providerId").is(providerId).and("providerUserId")
+			lc.add(Criteria.where("providerId").is(providerId).and("userId")
 					.in(entry.getValue()));
 		}
 
-		Criteria criteria = where("userId").is(userId);
+		Criteria criteria = Criteria.where("userId").is(userId);
 		criteria.orOperator(lc.toArray(new Criteria[lc.size()]));
 
 		Query q = new Query(criteria);
@@ -247,8 +240,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	public Set<String> getUserIds(String providerId, Set<String> providerUserIds) {
 		// select userId from " + tablePrefix + "UserConnection where providerId
 		// = :providerId and providerUserId in (:providerUserIds)
-		Query q = query(where("providerId").is(providerId)
-				.and("providerUserId")
+		Query q = Query.query(Criteria.where("providerId").is(providerId)
+				.and("userId")
 				.in(new ArrayList<String>(providerUserIds)));
 		q.fields().include("userId");
 
@@ -271,8 +264,8 @@ public class MongoConnectionDao implements SocialConnectionDao {
 	@Override
 	public List<String> getUserIds(String providerId, String providerUserId) {
 		// select userId where providerId = ? and providerUserId = ?",
-		Query q = query(where("providerId").is(providerId)
-				.and("providerUserId").is(providerUserId));
+		Query q = Query.query(Criteria.where("providerId").is(providerId)
+				.and("userId").is(providerUserId));
 		q.fields().include("userId");
 
 		List<MongoConnection> results = mongoTemplate.find(q,

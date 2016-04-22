@@ -24,7 +24,6 @@ public class MongoConnection {
 	private ObjectId id;
 	private String userId;
 	private String providerId;
-	private String providerUserId;
 	private int rank;
 	private String displayName;
 	private String profileUrl;
@@ -52,14 +51,6 @@ public class MongoConnection {
 
 	public void setProviderId(String providerId) {
 		this.providerId = providerId;
-	}
-
-	public String getProviderUserId() {
-		return providerUserId;
-	}
-
-	public void setProviderUserId(String providerUserId) {
-		this.providerUserId = providerUserId;
 	}
 
 	public int getRank() {
